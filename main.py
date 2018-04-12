@@ -1,6 +1,6 @@
 import torch
 from torch.autograd import Variable
-import cPickle as pickle
+import pickle
 import argparse
 import pdb, os
 import numpy as np
@@ -44,8 +44,8 @@ vis = Visdom()
 def evalModel(model):
     # set model to eval mode
     model.eval()
-    print '\n\n'
-    print '*'*30, ' MODEL EVALUATION ', '*'*30
+    print('\n\n')
+    print('*'*30, ' MODEL EVALUATION ', '*'*30)
 
     _article, _revArticle,  _extArticle, max_article_oov, article_oov, article_string, abs_string = dl.getEvalBatch()        
     _article = Variable(_article.cuda(), volatile=True)
@@ -57,33 +57,33 @@ def evalModel(model):
 
 ### utility code for displaying generated abstract
 def displayOutput(all_summaries, article, abstract, article_oov, show_ground_truth=False):    
-    print '*' * 80
-    print '\n'
+    print('*' * 80)
+    print('\n')
     if show_ground_truth:
-        print 'ARTICLE TEXT : \n', article
-        print 'ACTUAL ABSTRACT : \n', abstract
+        print('ARTICLE TEXT : \n', article)
+        print('ACTUAL ABSTRACT : \n', abstract)
     for i, summary in enumerate(all_summaries):    
         generated_summary = ' '.join([dl.id2word[ind] if ind<=dl.vocabSize else article_oov[ind % dl.vocabSize] for ind in summary])
-        print 'GENERATED ABSTRACT #%d : \n' %(i+1), generated_summary    
-    print '*' * 80
+        print('GENERATED ABSTRACT #%d : \n' %(i+1), generated_summary)
+    print('*' * 80)
     return
 
 # Utility code to save model to disk
 def save_model(net, optimizer,all_summaries, article_string, abs_string):
     save_dict = dict({'model': net.state_dict(), 'optim': optimizer.state_dict(), 'epoch': dl.epoch, 'iter':dl.iterInd, 'summaries':all_summaries, 'article':article_string, 'abstract_gold':abs_string})
-    print '\n','-' * 60
-    print 'Saving Model to : ', opt.save_dir
+    print('\n','-' * 60)
+    print('Saving Model to : ', opt.save_dir)
     save_name = opt.save_dir + 'savedModel_E%d_%d.pth' % (dl.epoch, dl.iterInd)
     torch.save(save_dict, save_name)
-    print '-' * 60  
+    print('-' * 60)
     return
 
 
 
 assert opt.trunc_vocab <= 50000, 'Invalid value for --truncate-vocab'
 assert os.path.isfile(opt.vocab_file), 'Invalid Path to vocabulary file'
-with open(opt.vocab_file) as f:
-    vocab = pickle.load(f)                                                          #list of tuples of word,count. Convert to list of words
+with open(opt.vocab_file, 'rb') as f:
+    vocab = pickle.load(f, encoding='latin1')                                                          #list of tuples of word,count. Convert to list of words
     vocab = [item[0] for item in vocab[:-(5+ 50000 - opt.trunc_vocab)]]             # Truncate vocabulary to conserve memory
 vocab += ['<unk>', '<go>', '<end>', '<s>', '</s>']                                  # add special token to vocab to bring total count to 50k
 
@@ -94,7 +94,7 @@ dl = dataloader.dataloader(opt.batchSize, opt.epochs, vocab, opt.train_file, opt
 if opt.bootstrap:
     # bootstrap with pretrained embeddings    
     wordEmbed = torch.nn.Embedding(len(vocab) + 1, 300, 0)
-    print 'Bootstrapping with pretrained GloVe word vectors...'
+    print('Bootstrapping with pretrained GloVe word vectors...')
     assert os.path.isfile('embeds.pkl'), 'Cannot find pretrained Word embeddings to bootstrap'
     with open('embeds.pkl', 'rb') as f:
         embeds = pickle.load(f)
@@ -104,7 +104,7 @@ else:
     # learn embeddings from scratch (default)
     wordEmbed = torch.nn.Embedding(len(vocab) + 1, opt.embedSize, 0)
 
-print 'Building and initializing SummaryNet...'
+print('Building and initializing SummaryNet...')
 net = models.SummaryNet(opt.embedSize, opt.hiddenSize, dl.vocabSize, wordEmbed,
                        start_id=dl.word2id['<go>'], stop_id=dl.word2id['<end>'], unk_id=dl.word2id['<unk>'],
                        max_decode=opt.max_decode, beam_size=opt.beam_size, lmbda=opt.lmbda)
@@ -118,10 +118,10 @@ if opt.load_model is not None and os.path.isfile(opt.load_model):
     dl.epoch = saved_file['epoch']
     dl.iterInd = saved_file['iter']
     dl.pbar.update(dl.iterInd)        
-    print '\n','*'*30, 'RESUME FROM CHECKPOINT : %s' %opt.load_model,'*'*30
+    print('\n','*'*30, 'RESUME FROM CHECKPOINT : %s' %opt.load_model,'*'*30)
     
 else:
-    print '\n','*'*30, 'START TRAINING','*'*30
+    print('\n','*'*30, 'START TRAINING','*'*30)
 
 #dl.iterInd = 287226
 #dl.pbar.update(dl.iterInd)        
@@ -133,7 +133,7 @@ while dl.epoch <= opt.epochs:
     batchArticles, batchExtArticles, batchRevArticles, batchAbstracts, batchTargets, _, _, max_article_oov, article_oov  = data_batch
     # end of training/max epoch reached
     if data_batch is None:
-        print '-'*50, 'END OF TRAINING', '-'*50
+        print('-'*50, 'END OF TRAINING', '-'*50)
         break    
     
     batchArticles = Variable(batchArticles.cuda())
@@ -175,3 +175,4 @@ while dl.epoch <= opt.epochs:
             save_model(net, optimizer, all_summaries, article_string, abs_string)
 
     del batch_loss, batchArticles, batchExtArticles, batchRevArticles, batchAbstracts, batchTargets
+

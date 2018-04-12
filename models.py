@@ -1,3 +1,4 @@
+import sys
 import torch
 from torch.autograd import Variable
 from torch.nn import LSTM, GRU, Linear, LSTMCell, Module
@@ -21,7 +22,7 @@ class Hypothesis(object):
 						  log_prob= self.log_prob + log_prob)
 
 # encoder net for the article
-class Encoder(Module):	
+class Encoder(Module):
 	def __init__(self, input_size, hidden_size, wordEmbed):
 		super(Encoder,self).__init__()
 		self.input_size = input_size
@@ -32,11 +33,11 @@ class Encoder(Module):
 		self.bkwd_rnn = LSTM(self.input_size, self.hidden_size, batch_first=True)
 		self.output_cproj = Linear(self.hidden_size * 2, self.hidden_size)
 		self.output_hproj = Linear(self.hidden_size * 2, self.hidden_size)
-	
+
 	def forward(self, _input, rev_input):
-		batch_size, max_len = _input.size(0), _input.size(1)		
+		batch_size, max_len = _input.size(0), _input.size(1)
 		embed_fwd = self.word_embed(_input)
-		embed_rev = self.word_embed(rev_input)	
+		embed_rev = self.word_embed(rev_input)
 
 		# get mask for location of PAD
 		mask = _input.eq(0).detach()
@@ -81,7 +82,7 @@ class PointerAttentionDecoder(Module):
 
 		self.V = Linear(self.hidden_size * 3, self.vocab_size)
 		self.min_length = 40
-		
+
 	def setValues(self, start_id, stop_id, unk_id, beam_size, max_decode=40, lmbda=1):
 		# start/stop tokens
 		self.start_id = start_id
@@ -93,58 +94,58 @@ class PointerAttentionDecoder(Module):
 		self.beam_size = beam_size
 		self.lmbda = lmbda
 
-	
+
 	def forward(self, enc_states, enc_final_state, enc_mask, _input, article_inds, targets, decode=False):
-		# enc_states -> output states of encoder 
+		# enc_states -> output states of encoder
 		# enc_final_state -> final output of encoder
 		# enc_mask -> mask indicating location of PAD in encoder input
-		# _input -> decoder inputs				
+		# _input -> decoder inputs
 		# article_inds -> modified encoder input with temporary OOV ids for each OOV token
 		# targets -> decoder targets
-		# decode -> Boolean flag for train/eval mode		
+		# decode -> Boolean flag for train/eval mode
 
 		if decode is True:
 			return self.decode(enc_states, enc_final_state, enc_mask, article_inds)
 
-		
+
 		batch_size, max_enc_len, enc_size = enc_states.size()
 		max_dec_len = _input.size(1)
 		# coverage initially zero
-		coverage =  Variable(torch.zeros(batch_size, max_enc_len).cuda())		
+		coverage =  Variable(torch.zeros(batch_size, max_enc_len).cuda())
 		dec_lens = (_input > 0).float().sum(1)
 		state = enc_final_state[0].unsqueeze(0),enc_final_state[1].unsqueeze(0)
-						
-		enc_proj = self.Wh(enc_states.view(batch_size*max_enc_len, enc_size)).view(batch_size, max_enc_len, -1)		
+
+		enc_proj = self.Wh(enc_states.view(batch_size*max_enc_len, enc_size)).view(batch_size, max_enc_len, -1)
 		embed_input = self.word_embed(_input)
-					
+
 		lm_loss, cov_loss = [], []
 		hidden, _ = self.decoderRNN(embed_input, state)
-		
+
 		# step through decoder hidden states
 		for _step in range(max_dec_len):
 			_h = hidden[:, _step, :]
-			target = targets[:, _step].unsqueeze(1)			
-			
+			target = targets[:, _step].unsqueeze(1)
+
 			dec_proj = self.Ws(_h).unsqueeze(1).expand_as(enc_proj)
-			cov_proj = self.w_c(coverage.view(-1, 1)).view(batch_size, max_enc_len, -1)			
+			cov_proj = self.w_c(coverage.view(-1, 1)).view(batch_size, max_enc_len, -1)
 			e_t = self.v(F.tanh(enc_proj + dec_proj + cov_proj).view(batch_size*max_enc_len, -1))
 
 			# mask to -INF before applying softmax
 			attn_scores = e_t.view(batch_size, max_enc_len)
 			del e_t
-			attn_scores.masked_fill_(enc_mask, -float('inf'))
+			attn_scores.masked_fill_(enc_mask, -float(sys.maxsize))
 			attn_scores = F.softmax(attn_scores)
-			
-			context = attn_scores.unsqueeze(1).bmm(enc_states).squeeze(1)		
-			p_vocab = 	F.softmax(self.V(torch.cat((_h, context), 1)))									#output proj calculation			
+
+			context = attn_scores.unsqueeze(1).bmm(enc_states).squeeze(1)
+			p_vocab = 	F.softmax(self.V(torch.cat((_h, context), 1)))									#output proj calculation
 			p_gen = F.sigmoid(self.w_h(context) + self.w_s(_h) + self.w_x(embed_input[:, _step, :]))	# p_gen calculation
 			p_gen = p_gen.view(-1, 1)
 			weighted_Pvocab = p_gen * p_vocab
 			weighted_attn = (1-p_gen)* attn_scores
-			
+
 			if self.max_article_oov > 0:
 				ext_vocab = Variable(torch.zeros(batch_size, self.max_article_oov).cuda())				#create OOV (but in-article) zero vectors
-				combined_vocab = torch.cat((weighted_Pvocab, ext_vocab), 1)			
+				combined_vocab = torch.cat((weighted_Pvocab, ext_vocab), 1)
 				del ext_vocab
 			else:
 				combined_vocab = weighted_Pvocab
@@ -153,27 +154,27 @@ class PointerAttentionDecoder(Module):
 			assert article_inds.data.min() >=0 and article_inds.data.max() <= (self.vocab_size+ self.max_article_oov), 'Recheck OOV indexes!'
 
 			# scatter article word probs to combined vocab prob.
-			# subtract one to account for 0-index			
+			# subtract one to account for 0-index
 			article_inds_masked = article_inds.add(-1).masked_fill_(enc_mask, 0)
-			combined_vocab = combined_vocab.scatter_add(1, article_inds_masked, weighted_attn)						
+			combined_vocab = combined_vocab.scatter_add(1, article_inds_masked, weighted_attn)
 
 			# mask the output to account for PAD
 			# subtract one from target for 0-index
-			target_mask_0 = target.ne(0).detach()	
-			target_mask_p = target.eq(0).detach()	
+			target_mask_0 = target.ne(0).detach()
+			target_mask_p = target.eq(0).detach()
 			target = target - 1
-			output = combined_vocab.gather(1, target.masked_fill_(target_mask_p, 0))  			
+			output = combined_vocab.gather(1, target.masked_fill_(target_mask_p, 0))
 			lm_loss.append(output.log().mul(-1) * target_mask_0.float())
-			
+
 			coverage = coverage + attn_scores
 
 			# Coverage Loss
-			# take minimum across both attn_scores and coverage 
+			# take minimum across both attn_scores and coverage
 			_cov_loss, _ = torch.stack((coverage, attn_scores), 2).min(2)
-			cov_loss.append(_cov_loss.sum(1))						
-						
+			cov_loss.append(_cov_loss.sum(1))
+
 		# add individual losses
-		total_masked_loss = torch.cat(lm_loss, 1).sum(1).div(dec_lens) + self.lmbda*torch.stack(cov_loss, 1).sum(1).div(dec_lens)					
+		total_masked_loss = torch.cat(lm_loss, 1).sum(1).div(dec_lens) + self.lmbda*torch.stack(cov_loss, 1).sum(1).div(dec_lens)
 		return total_masked_loss
 
 	def decode_step(self, enc_states, state, _input, enc_mask, article_inds):
@@ -183,39 +184,39 @@ class PointerAttentionDecoder(Module):
 		batch_size, max_enc_len, enc_size = enc_states.size()
 
 		# coverage initially zero
-		coverage =  Variable(torch.zeros(batch_size, max_enc_len).cuda())				
-		
-		enc_proj = self.Wh(enc_states.view(batch_size*max_enc_len, enc_size)).view(batch_size, max_enc_len, -1)		
+		coverage =  Variable(torch.zeros(batch_size, max_enc_len).cuda())
+
+		enc_proj = self.Wh(enc_states.view(batch_size*max_enc_len, enc_size)).view(batch_size, max_enc_len, -1)
 		embed_input = self.word_embed(_input)
 
-		_h, _c = self.decoderRNN(embed_input, state)[1]			
+		_h, _c = self.decoderRNN(embed_input, state)[1]
 		_h = _h.squeeze(0)
 		dec_proj = self.Ws(_h).unsqueeze(1).expand_as(enc_proj)
-		cov_proj = self.w_c(coverage.view(-1, 1)).view(batch_size, max_enc_len, -1)			
+		cov_proj = self.w_c(coverage.view(-1, 1)).view(batch_size, max_enc_len, -1)
 		e_t = self.v(F.tanh(enc_proj + dec_proj + cov_proj).view(batch_size*max_enc_len, -1))
 		attn_scores = e_t.view(batch_size, max_enc_len)
 		del e_t
-		attn_scores.masked_fill_(enc_mask, -float('inf'))
+		attn_scores.masked_fill_(enc_mask, -float(sys.maxsize))
 		attn_scores = F.softmax(attn_scores)
 
-		context = attn_scores.unsqueeze(1).bmm(enc_states)		
-		p_vocab = 	F.softmax(self.V(torch.cat((_h, context.squeeze(1)), 1)))							# output proj calculation			
+		context = attn_scores.unsqueeze(1).bmm(enc_states)
+		p_vocab = 	F.softmax(self.V(torch.cat((_h, context.squeeze(1)), 1)))							# output proj calculation
 		p_gen = F.sigmoid(self.w_h(context.squeeze(1)) + self.w_s(_h) + self.w_x(embed_input[:, 0, :]))	# p_gen calculation
 		p_gen = p_gen.view(-1, 1)
 		weighted_Pvocab = p_gen * p_vocab
 		weighted_attn = (1-p_gen)* attn_scores
-	
-		if self.max_article_oov > 0:			
+
+		if self.max_article_oov > 0:
 			ext_vocab = Variable(torch.zeros(batch_size, self.max_article_oov).cuda())					# create OOV (but in-article) zero vectors
-			combined_vocab = torch.cat((weighted_Pvocab, ext_vocab), 1)			
+			combined_vocab = torch.cat((weighted_Pvocab, ext_vocab), 1)
 			del ext_vocab
 		else:
-			combined_vocab = weighted_Pvocab		
+			combined_vocab = weighted_Pvocab
 		assert article_inds.data.min() >=0 and article_inds.data.max() <= (self.vocab_size+ self.max_article_oov), 'Recheck OOV indexes!'
 
 		# scatter article word probs to combined vocab prob.
-		# subtract one to account for 0-index			
-		combined_vocab = combined_vocab.scatter_add(1, article_inds.add(-1), weighted_attn)			
+		# subtract one to account for 0-index
+		combined_vocab = combined_vocab.scatter_add(1, article_inds.add(-1), weighted_attn)
 
 		return combined_vocab, _h, _c.squeeze(0)
 
@@ -223,7 +224,7 @@ class PointerAttentionDecoder(Module):
 	def getOverallTopk(self, vocab_probs, _h, _c, all_hyps, results):
 		# return top-k values i.e. top-k over all beams i.e. next step input ids
 		# return hidden, cell states corresponding to topk
-		probs, inds = vocab_probs.topk(k=self.beam_size, dim=1)			
+		probs, inds = vocab_probs.topk(k=self.beam_size, dim=1)
 		probs = probs.log().data
 		inds = inds.data
 		inds.add_(1)
@@ -263,35 +264,35 @@ class PointerAttentionDecoder(Module):
 		init_state = enc_final_state[0].unsqueeze(0),enc_final_state[1].unsqueeze(0)
 		decoded_outputs = []
 		# all_hyps --> list of current beam hypothesis. start with base initial hypothesis
-		all_hyps = [Hypothesis([self.start_id], None, None, 0)]		
+		all_hyps = [Hypothesis([self.start_id], None, None, 0)]
 		# start decoding
-		for _step in range(self.max_decode_steps):			
+		for _step in range(self.max_decode_steps):
 			# ater first step, input is of batch_size=curr_beam_size
 			# curr_beam_size <= self.beam_size due to pruning of beams that have terminated
 			# adjust enc_states and init_state accordingly
-			curr_beam_size = _input.size(0)			
-		 	beam_enc_states = enc_states.expand(curr_beam_size, enc_states.size(1), enc_states.size(2)).contiguous().detach()
-		 	beam_article_inds = article_inds.expand(curr_beam_size, article_inds.size(1)).detach()		 	
+			curr_beam_size = _input.size(0)
+			beam_enc_states = enc_states.expand(curr_beam_size, enc_states.size(1), enc_states.size(2)).contiguous().detach()
+			beam_article_inds = article_inds.expand(curr_beam_size, article_inds.size(1)).detach()
 
 			vocab_probs, next_h, next_c = self.decode_step(beam_enc_states, init_state, _input, enc_mask, beam_article_inds)
 
 			# does bulk of the beam search
 			# decoded_outputs --> list of all ouputs terminated with stop tokens and of minimal length
-			all_hyps, decode_inds, decoded_outputs, init_h, init_c = self.getOverallTopk(vocab_probs, next_h, next_c, all_hyps, decoded_outputs)						
-			
+			all_hyps, decode_inds, decoded_outputs, init_h, init_c = self.getOverallTopk(vocab_probs, next_h, next_c, all_hyps, decoded_outputs)
+
 			# convert OOV words to unk tokens for lookup
 			decode_inds.masked_fill_((decode_inds > self.vocab_size), self.unk_id)
 			decode_inds = decode_inds.t()
 			_input = Variable(decode_inds.cuda(), volatile=True)
 			init_state = (Variable(init_h.unsqueeze(0), volatile=True), Variable(init_c.unsqueeze(0), volatile=True))
 
-			
-		
+
+
 		non_terminal_output = [item.full_prediction for item in all_hyps]
 		all_outputs = decoded_outputs + non_terminal_output
 		return all_outputs
-			
-		
+
+
 class SummaryNet(Module):
 	def __init__(self, input_size, hidden_size, vocab_size, wordEmbed, start_id, stop_id, unk_id, beam_size=4, max_decode=40, lmbda=1):
 		super(SummaryNet, self).__init__()
@@ -304,25 +305,18 @@ class SummaryNet(Module):
 
 	def forward(self, _input, max_article_oov, decode_flag=False):
 		# set num article OOVs in decoder
-		self.pointerDecoder.max_article_oov = max_article_oov		
+		self.pointerDecoder.max_article_oov = max_article_oov
 		# decode/eval code
 		if decode_flag:
 			enc_input, rev_enc_input, article_inds = _input
 			enc_states, enc_hn, enc_cn, enc_mask = self.encoder(enc_input, rev_enc_input)
 			model_summary = self.pointerDecoder(enc_states, (enc_hn, enc_cn), enc_mask, None, article_inds, targets=None, decode=True)
 			return model_summary
-		
+
 		else:
 		# train code
 			enc_input, article_inds, rev_enc_input, dec_input, dec_target = _input
 			enc_states, enc_hn, enc_cn, enc_mask = self.encoder(enc_input, rev_enc_input)
-			
+
 			total_loss = self.pointerDecoder(enc_states, (enc_hn, enc_cn), enc_mask, dec_input, article_inds, targets=dec_target)
-			return total_loss			
-		
-
-
-
-
-
-
+			return total_loss
