@@ -1,0 +1,3 @@
+<go> <s> amazon has won approval from u.s. federal regulators to test the latest version of its delivery drone outdoors .
+</s> <s> the company has been pursuing its goal of sending packages to customers by air .
+</s> <s> the company has been pursuing its goal of sending packages to <end>

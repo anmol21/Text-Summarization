@@ -1,0 +1,4 @@
+<go> <s> yannick bolasie scored three goals as crystal palace beat burnley 3-1 .
+</s> <s> yannick bolasie scored three goals as crystal palace beat burnley 3-1 .
+</s> <s> yannick bolasie scored three goals as crystal palace beat burnley 3-1 .
+</s> <end>

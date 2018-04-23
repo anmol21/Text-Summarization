@@ -1,0 +1,2 @@
+<go> <s> dino padua , who is on trial in maglio , northern italy , was sentenced to six and a half years in prison .
+</s> <s> dino padua , who is on trial in maglio , northern italy , was sentenced to six and a half years in prison <end>

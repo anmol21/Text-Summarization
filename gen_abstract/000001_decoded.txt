@@ -1,0 +1,4 @@
+<go> <s> robert bates , 73 , shot and killed a man while playing cops and robbers .
+</s> <s> he was n't limited to crowd control at sporting events for the disabled .
+</s> <s> he was n't limited to crowd control at sporting events for the disabled .
+</s> <end>

@@ -1,0 +1,21 @@
+<ROUGE_EVAL version="1.55">
+	<EVAL ID="1">
+        <PEER-ROOT>actual_abstract</PEER-ROOT>
+        <MODEL-ROOT>gen_abstract</MODEL-ROOT>
+        <INPUT-FORMAT TYPE="SPL" />
+        <PEERS>
+            <P ID="1">000001_decoded.txt</P>
+            <P ID="2">000002_decoded.txt</P>
+            <P ID="3">000003_decoded.txt</P>
+            <P ID="4">000004_decoded.txt</P>
+            <P ID="5">000005_decoded.txt</P>
+        </PEERS>
+        <MODELS>
+           <M ID="A">000001_reference.txt</M>
+           <M ID="B">000002_reference.txt</M>
+           <M ID="C">000003_reference.txt</M>
+           <M ID="D">000004_reference.txt</M>
+           <M ID="E">000005_reference.txt</M>
+        </MODELS>
+    </EVAL>
+</ROUGE_EVAL>

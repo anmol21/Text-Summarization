@@ -1,0 +1,9 @@
+
+ROUGE-1:
+
+ROUGE-2:
+
+ROUGE-l:
+rouge_l_f_score: 0.0000 with confidence interval (0.0000, 0.0000)
+rouge_l_recall: 0.0000 with confidence interval (0.0000, 0.0000)
+rouge_l_precision: 0.0000 with confidence interval (0.0000, 0.0000)
