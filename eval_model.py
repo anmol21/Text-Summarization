@@ -20,7 +20,7 @@ parser.add_argument("--vocab-file", dest="vocab_file", help="Path to vocabulary 
 parser.add_argument("--max-abstract-size", dest="max_abstract_size", help="Maximum size of abstract for decoder input", default=110, type=int)
 parser.add_argument("--max-article-size", dest="max_article_size", help="Maximum size of article for encoder input", default=300, type=int)
 parser.add_argument("--batch-size", dest="batchSize", help="Mini-batch size", default=32, type=int)
-parser.add_argument("--embed-size", dest="embedSize", help="Size of word embedding", default=300, type=int)
+parser.add_argument("--embed-size", dest="embedSize", help="Size of word embedding", default=128, type=int)
 parser.add_argument("--hidden-size", dest="hiddenSize", help="Size of hidden to model", default=128, type=int)
 
 parser.add_argument("--lambda", dest="lmbda", help="Hyperparameter for auxillary cost", default=1, type=float)
@@ -86,7 +86,7 @@ def write_for_rouge(reference_sents, decoded_words, ex_index):
 
 
 ### utility code for displaying generated abstract
-def displayOutput(j, all_summaries, article, abstract, article_oov, show_ground_truth=True):    
+def displayOutput(j, all_summaries, article, abstract, article_oov, show_ground_truth=True):
 
     # f1 = open('actual_abstract/' + str(i) + '.txt', 'w+')
     # f2 = open('gen_abstract/' + str(i) +'.txt', 'w+')
@@ -106,7 +106,7 @@ def displayOutput(j, all_summaries, article, abstract, article_oov, show_ground_
         generated_summary = ' '.join([dl.id2word[ind] if ind<=dl.vocabSize else article_oov[ind % dl.vocabSize] for ind in summary])
         for token in special_tokens:
             generated_summary.replace(token, '')
-        print ('GENERATED ABSTRACT #%d : \n' %(i+1), generated_summary)   
+        print ('GENERATED ABSTRACT #%d : \n' %(i+1), generated_summary)
     print('*' * 150)
     return
 
@@ -117,7 +117,7 @@ def save_model(net, optimizer,all_summaries, article_string, abs_string):
     print('Saving Model to : ', opt.save_dir)
     save_name = opt.save_dir + 'savedModel_E%d_%d.pth' % (dl.epoch, dl.iterInd)
     torch.save(save_dict, save_name)
-    print('-' * 60)  
+    print('-' * 60)
     return
 
 
@@ -130,7 +130,7 @@ with open(opt.vocab_file, 'rb') as f:
     vocab = [item[0] for item in vocab[:-(5+ 50000 - opt.trunc_vocab)]]             # Truncate vocabulary to conserve memory
 vocab += ['<unk>', '<go>', '<end>', '<s>', '</s>']                                  # add special token to vocab to bring total count to 50k
 
-dl = dataloader.dataloader(opt.batchSize, None, vocab, opt.train_file, opt.test_file, 
+dl = dataloader.dataloader(opt.batchSize, None, vocab, opt.train_file, opt.test_file,
                           opt.max_article_size, opt.max_abstract_size, test_mode=True)
 
 
@@ -145,7 +145,7 @@ print('Loading weights from file...might take a minute...')
 saved_file = torch.load(opt.load_model)
 net.load_state_dict(saved_file['model'])
 print('\n','*'*30, 'LOADED WEIGHTS FROM MODEL FILE : %s' %opt.load_model,'*'*30)
-    
+
 ############################################################################################
 # Set model to eval mode
 ############################################################################################
@@ -170,9 +170,7 @@ for _ in range(5):
 
     _article = Variable(_article.cuda(), volatile=True)
     _extArticle = Variable(_extArticle.cuda(), volatile=True)
-    _revArticle = Variable(_revArticle.cuda(), volatile=True)    
+    _revArticle = Variable(_revArticle.cuda(), volatile=True)
     all_summaries = net((_article, _revArticle, _extArticle), max_article_oov, decode_flag=True)
 
-    displayOutput(i, all_summaries, article_string, abs_string, article_oov, show_ground_truth=opt.print_ground_truth)
-
-
+    #displayOutput(i, all_summaries, article_string, abs_string, article_oov, show_ground_truth=opt.print_ground_truth)

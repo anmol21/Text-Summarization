@@ -221,29 +221,30 @@ def check_num_stories(stories_dir, num_expected):
 
 
 if __name__ == '__main__':
-  #if len(sys.argv) != 3:
-  #  print("USAGE: python make_datafiles.py <cnn_stories_dir> <dailymail_stories_dir>")
-  #  sys.exit()
-  #cnn_stories_dir = sys.argv[1]
-  #dm_stories_dir = sys.argv[2]
+  if len(sys.argv) != 3:
+   print("USAGE: python make_datafiles.py <cnn_stories_dir> <dailymail_stories_dir>")
+   sys.exit()
+  cnn_stories_dir = sys.argv[1]
+  dm_stories_dir = sys.argv[2]
 
   # Check the stories directories contain the correct number of .story files
-  #check_num_stories(cnn_stories_dir, num_expected_cnn_stories)
-  #check_num_stories(dm_stories_dir, num_expected_dm_stories)
+  check_num_stories(cnn_stories_dir, num_expected_cnn_stories)
+  check_num_stories(dm_stories_dir, num_expected_dm_stories)
 
   # Create some new directories
-  #if not os.path.exists(cnn_tokenized_stories_dir): os.makedirs(cnn_tokenized_stories_dir)
-  #if not os.path.exists(dm_tokenized_stories_dir): os.makedirs(dm_tokenized_stories_dir)
-  #if not os.path.exists(finished_files_dir): os.makedirs(finished_files_dir)
+  if not os.path.exists(cnn_tokenized_stories_dir): os.makedirs(cnn_tokenized_stories_dir)
+  if not os.path.exists(dm_tokenized_stories_dir): os.makedirs(dm_tokenized_stories_dir)
+  if not os.path.exists(finished_files_dir): os.makedirs(finished_files_dir)
 
-  # Run stanford tokenizer on both stories dirs, outputting to tokenized stories directories
-  #tokenize_stories(cnn_stories_dir, cnn_tokenized_stories_dir)
-  #tokenize_stories(dm_stories_dir, dm_tokenized_stories_dir)
+  # # Run stanford tokenizer on both stories dirs, outputting to tokenized stories directories
+  # tokenize_stories(cnn_stories_dir, cnn_tokenized_stories_dir)
+  # tokenize_stories(dm_stories_dir, dm_tokenized_stories_dir)
 
   # Read the tokenized stories, do a little postprocessing then write to bin files
-  write_to_bin(all_test_urls, os.path.join(finished_files_dir, "test.bin"))
-  write_to_bin(all_val_urls, os.path.join(finished_files_dir, "val.bin"))
+  # write_to_bin(all_test_urls, os.path.join(finished_files_dir, "test.bin"))
+  # write_to_bin(all_val_urls, os.path.join(finished_files_dir, "val.bin"))
   write_to_bin(all_train_urls, os.path.join(finished_files_dir, "train.bin"), makevocab=True)
 
+  print("About to start chunking")
   # Chunk the data. This splits each of train.bin, val.bin and test.bin into smaller chunks, each containing e.g. 1000 examples, and saves them in finished_files/chunks
-  #chunk_all()
+  # chunk_all()

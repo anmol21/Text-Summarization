@@ -24,6 +24,7 @@ class dataloader():
 		self.test_path = test_path
 		if not self.test_mode:
 			print('Loading training data from disk...will take a minute...')
+			print(self.train_path)
 			with open(self.train_path,'rb') as f:
 				self.train_data = pickle.load(f)
 			self.trainSamples = len(self.train_data)
@@ -129,12 +130,12 @@ class dataloader():
 		padExtArticles = [torch.LongTensor(item + [0] * (max(art_lens) - len(item))) for item in extIntArticles]
 		padRevArticles = [torch.LongTensor(item + [0] * (max(art_lens) - len(item))) for item in intRevArticles]
 		padAbstracts = [torch.LongTensor(item + [0] * (max(abs_lens) - len(item))) for item in intAbstract]
+		batchRevArticles = torch.stack(padRevArticles, 0)
 		padTargets = [torch.LongTensor(item + [0] * (max(abs_lens) - len(item))) for item in intTargets]
 
 		batchExtArticles = torch.stack(padExtArticles, 0)
 		# replace temp ids with unk token id for enc input
 		batchArticles = batchExtArticles.clone().masked_fill_((batchExtArticles > self.vocabSize), self.word2id['<unk>'])
-		batchRevArticles = torch.stack(padRevArticles, 0)
 		batchAbstracts = torch.stack(padAbstracts, 0)
 		batchTargets = torch.stack(padTargets, 0)
 		art_lens = torch.LongTensor(art_lens)
