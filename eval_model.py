@@ -67,13 +67,13 @@ def write_for_rouge(reference_sents, decoded_words, ex_index):
     decoded_sents = [make_html_safe(w) for w in decoded_sents]
     reference_sents = [make_html_safe(w) for w in reference_sents]
 
-    rouge_ref_dir = 'actual_abstract/'
-    rouge_dec_dir = 'gen_abstract/'
+    rouge_ref_dir = 'reference/'
+    rouge_dec_dir = 'system/'
 
     # Write to file
 
     ref_file = os.path.join(rouge_ref_dir, "%06d_reference.txt" % ex_index)
-    decoded_file = os.path.join(rouge_dec_dir, "%06d_decoded.txt" % ex_index)
+    decoded_file = os.path.join(rouge_dec_dir, "%06d_system.txt" % ex_index)
 
     with open(ref_file, "w") as f:
       for idx,sent in enumerate(reference_sents):
@@ -101,7 +101,7 @@ def displayOutput(j, all_summaries, article, abstract, article_oov, show_ground_
     for i, summary in enumerate(all_summaries):
         if i == 0:
             gen_list = [dl.id2word[ind] if ind<=dl.vocabSize else article_oov[ind % dl.vocabSize] for ind in summary]
-            write_for_rouge(list_article, gen_list, j)
+            write_for_rouge(abstract.split('.'), gen_list, j)
 
         generated_summary = ' '.join([dl.id2word[ind] if ind<=dl.vocabSize else article_oov[ind % dl.vocabSize] for ind in summary])
         for token in special_tokens:
