@@ -17,7 +17,7 @@ parser.add_argument("--train-file", dest="train_file", help="Path to train dataf
 parser.add_argument("--test-file", dest="test_file", help="Path to test/eval datafile", default='finished_files/test.bin', type=str)
 parser.add_argument("--vocab-file", dest="vocab_file", help="Path to vocabulary datafile", default='finished_files/vocabulary.bin', type=str)
 
-parser.add_argument("--max-abstract-size", dest="max_abstract_size", help="Maximum size of abstract for decoder input", default=110, type=int)
+parser.add_argument("--max-abstract-size", dest="max_abstract_size", help="Maximum size of abstract for decoder input", default=60, type=int)
 parser.add_argument("--max-article-size", dest="max_article_size", help="Maximum size of article for encoder input", default=300, type=int)
 parser.add_argument("--batch-size", dest="batchSize", help="Mini-batch size", default=32, type=int)
 parser.add_argument("--embed-size", dest="embedSize", help="Size of word embedding", default=128, type=int)
